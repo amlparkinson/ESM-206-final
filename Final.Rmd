@@ -1,5 +1,5 @@
 ---
-title: "Final"
+title: "Fall 2019 Final Exam"
 author: "Anne-Marie Parkinson"
 date: "December 4, 2019"
 output: html_document
@@ -22,6 +22,7 @@ library(janitor)
 library(kableExtra)
 library(grid)
 library(stargazer)
+
 ```
 
 ### Task 1: Predicting Penguin Mass
@@ -270,15 +271,115 @@ ggplot (new, aes(x=year, y=enrollment)) +
 
 ### Task 4: Purple urchins on the Santa Barbara coast
 
-```{r}
+```{r, include = F}
+# load data and modify so only have purple urchin observations in control treatments 
+
+urchin <- read_csv('sbc_lter_urchins.csv') 
+urchin <-  urchin %>% 
+  clean_names() %>% 
+  filter (common_name == "Purple Urchin") %>% 
+  filter (treatment == "CONTROL") %>% 
+  uncount(count) %>% 
+  select (year, site, size) %>% 
+  mutate(site = case_when(
+    site %in% c("CARP") ~ "Carpinteria" ,
+    site %in% c("IVEE") ~ "Isla Vista",
+    site %in% c("AQUE") ~ "Arroyo Quemado",
+    site %in% c("MOHK") ~ "Mohawk", 
+    site %in% c("NAPL") ~ "Naples")) %>% 
+  mutate(year=as.character(year))
+
+```
+
+```{r, include = F}
+
+# summary statistics for urchin sizes at the 5 different sites
+
+urchin_stats <- urchin %>% 
+  group_by(site) %>% 
+  summarize (mean = mean(size, na.rm=T),
+             sd = sd(size, na.rm=T),
+             se = sd((size) / sqrt(n()), na.rm=T),
+             sample_size = n())
+# kable of urchin stats
+
+urchin_stats %>% 
+  kable (col.names = c("Site", "Mean", "Standard Deviation", "Standard Error", "Sample Size"),
+         digits=2) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+    full_width=T,
+    position="center") 
+
+
+```
+maybe choose a different graph? -> yes ,make a graph with measures of uncertainty (sd, se)
+```{r, include = F}
+# exploratory graphs of purple urchin size distributions at each site
+
+ggplot (urchin, aes(x=size)) +
+  geom_density(aes(fill=site), show.legend=F) +
+  labs ( x= '\nSize (?)', 
+         y = 'Density\n', 
+         title="Sampling distribution of purple urchins",
+         subtitle = "2008-2018\n") +
+  scale_x_continuous(expand = c(0,0),
+                     lim = c(0,10),
+                     breaks = seq(0,10, by=2)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw() +
+  facet_wrap(~site, scales="free_x") +
+  theme(plot.title = element_text(hjust=0.5),
+        panel.spacing=unit(2, "lines"),
+        plot.subtitle = element_text(hjust=0.5))
+
+
 
 ```
 
 
 
+Observations of exploratory graphs:
+
+- Distribution of sizes appears to be normal for all five sites.
+- There is a large sample size for all sites, so it is unlikely that all urchins at the sites fall within these bounds. These gaps in the graph are likely due to sampling error --> check metadata
+
+```{r, include = F}
+# is there a significant difference in mean purple urchin size in control treatments at the 5 sites
+
+# H null: there is no significant difference in mean purple urchin size in control treatments at the 5 sites
+# H alt: there is a significant difference in mean purple urchin size in control treatments at the 5 sites
+
+# anova
+urchin_aov <- aov(size ~ site, data=urchin)
+summary(urchin_aov)
+# p<2e-16
+
+# tukey
+urchin_tukey <- TukeyHSD(urchin_aov)
+urchin_tukey
+
+# results: all sites have a significant difference except for 
+
+# To report your one-way ANOVA, need to unlist the outcomes isla vista and carpenteria
+
+urchin_outputs <- unlist(summary(urchin_aov))
+urchin_outputs
+
+# Create a data frame of Tukey to reference p-values through in-line referencing
+
+df <- data.frame(urchin_tukey$site)
+df
+```
+
+To determine whether or not there is a difference in total mean sizes for purple urchins (*Strongylocentrotus purpuratus*) found in five different sites along the Santa Barbara coast, a one-way ANOVA test was performed. The results  F(`r urchin_outputs[1]`, `r urchin_outputs[2]`) = `r round(urchin_outputs[7],2)`, *p* = `r round(urchin_outputs[9],3)`) indicate that there is a significant difference between at least two of the mean sizes for purple urchins in different sites A Tukey's HSD post-hoc test was performed to determine which sites had significant differences between total mean sizes. The results show that there is a significant difference in all but one pairwise comparison: total mean sizes between purple urchins in Isla Vista (`r round(urchin_stats$mean[3], 2)`g $\pm$ `r round(urchin_stats$sd[3], 2)`g)(mean $\pm$ SD) and Carpinteria (`r round(urchin_stats$mean[2], 2)`g $\pm$ `r round(urchin_stats$sd[2], 2)`g)(mean $\pm$ SD) (*p* = `r round(df$p.adj[5],3)`). 
 
 
+mohawk: (`r round(urchin_stats$mean[4], 2)`g $\pm$ `r round(urchin_stats$sd[4], 2)`g) 
+naples: (`r round(urchin_stats$mean[5], 2)`g $\pm$ `r round(urchin_stats$sd[5], 2)`g)
+arroyo Quemado (`r round(urchin_stats$mean[1], 2)`g $\pm$ `r round(urchin_stats$sd[1], 2)`g)
 
+The actual differences in mean weights between channel types was 1.78 grams between pools and cascades and 1.84 grams between side channels and cascades. These differences were significantly lower than the difference between pools and side channles, which was 3.62 grams (about 50% higher than the other mean differences). 
 
 
 
