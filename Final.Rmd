@@ -28,11 +28,6 @@ library(stargazer)
 ### Task 1: Predicting Penguin Mass
 
 
-so use multiple linear regression to predict mass using species + sex + flipper length
-
-steps: visualize data for correlations
-make model (with diff combos)
-check assumptions
 ```{r}
 # load data and remove NA's
 penguin <- read_csv("lter_penguin_species.csv") %>% 
@@ -70,12 +65,9 @@ ggplot(penguin_sub, aes(x=flipper_length_mm, y=body_mass_g)) +
                      expand=c(0,0),
                      breaks=seq(3000, 6500, by=1000))
 
-
-
-
-
 ```
-***Figure 1:** Data: Palmer Station LTER.*
+
+***Figure 1:** Flipper lengths (mm) and body mass (g) by sex of three penguin species in Antarctica - ![Gentoo] (https://doi.org/10.6073/pasta/409c808f8fc9899d02401bdb04580af7), ![Chinstrap] (https://doi.org/10.6073/pasta/2b1cff60f81640f182433d23e68541ce), and ![Adelie] (https://doi.org/10.6073/pasta/abc50eed9138b75f54eaada0841b9b86) penguins. Data: Palmer Station LTER.*
 
 General trends from Figure 1:
 
@@ -118,15 +110,38 @@ stargazer(mass_model1, type="html")
 
 ```
 
+The assumptions for using multiple linear regression were met by plotting the residuals. The QQ plot showed that the residuals follow a normal distribution, while ...
+
+The adjusted R^2^ evaluates model fit, but has been adjusted for the number of predictors in the model. 
+
+
 
 
 ```{r, include = F}
-# G:	Use the model, predict the masses 
-mass_model1
+# Use the model predict the masses 
 
-intercept = -365.82
-flipper_length = 20.02
+# create data frame
+new_df <- data.frame(
+  flipper_length_mm = rep(c(195, 205, 220)),
+  sex = rep(c("FEMALE", "MALE", "MALE")),
+  species = rep(c("Chinstrap penguin (Pygoscelis antarctica)", "Adelie Penguin (Pygoscelis adeliae)", "Gentoo penguin (Pygoscelis papua)"))
+)
 
+# predict values in data frame
+predict_df <- predict(mass_model1, newdata = new_df)
+
+# bind predictions with new_df
+new_df_predictions <- data.frame(new_df, predict_df)
+
+# make new_df_preiditions into a nice table
+
+new_df_predictions %>% 
+  kable (col.names = c("Flipper Length (mm)", "Sex", "Species", "Body Mass (g) Predictions")) %>%
+ # add_header_above(c(" "= 1, "Low Birthweight?"=2)) %>% 
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+    full_width=T,
+    position="center") 
 
 ```
 
@@ -158,6 +173,8 @@ birthweights <- read_csv('nc_birthweights.csv') %>%
 
 ```
 
+
+***Table 2:** Data was collected on babies classified birthweight (low or not) and whther or not the mother smoked during pregnancy. 1,000 babies from North Carolina were randomly selected for the study.*
 ```{r}
 # table: Does the proportion of babies born at “low birth weight” differ depending on whether the mother smoked or did not smoke during pregnancy
 
@@ -235,38 +252,108 @@ ucsb <- read_csv('ucsb_campus_profiles.csv') %>%
   clean_names()
 ```
 
+In this section, I will explore the undergraduate enrollment rates of minorities at University of California, Santa barbara across all years of available data (2008-2019). Enrollment rates of whites, others, and unknowns were excluded from the analysis and some ethnicities were combined into similar groups (Filipinos were combined with Asian and Pacific Islanders, Chicanos and Latinos were combined into a new group called Hispanics). 
 
-
-```{r, include = F}
+```{r}
 # for now, explore what relationship to explore
 # subdata: combine groups and remove other/unknown
 
-ucsb_ethnicity_combined <- ucsb %>% 
+ucsb_ethnicity <- ucsb %>% 
+  filter (student_level == "Undergraduate (individuals)") %>% 
   group_by(ethnicity_domestic_enrollment,year) %>% 
   summarise(enrollment = sum(value, na.rm=T)) %>% 
-  ungroup(ethnicity_domestic_enrollment) %>% 
+  ungroup(ethnicity_domestic_enrollment)
+
+ucsb_ethnicity_combined <- ucsb_ethnicity %>% 
+  filter (ethnicity_domestic_enrollment != "White") %>% 
+  filter (ethnicity_domestic_enrollment != "Other") %>%
+  filter (ethnicity_domestic_enrollment != "Unknown") %>% 
   mutate (ethnicity_domestic_enrollment = case_when(
     ethnicity_domestic_enrollment %in% 'American Indian / Alaskan'  ~ 'American Indian/Alaskan', 
     ethnicity_domestic_enrollment %in% c("Asian / Pacific Islander", "Filipino" ) ~ "Asian/Pacific Islander", 
-    ethnicity_domestic_enrollment %in% "Black / African American" ~ "Black/African American",
+    ethnicity_domestic_enrollment %in% "Black / African American" ~ "African American",
     ethnicity_domestic_enrollment %in% c("Chicano", "Latino") ~ "Hispanic",
-    ethnicity_domestic_enrollment %in% "E. Indian / Pakistani" ~ "E.Indian/Pakistani",
-    ethnicity_domestic_enrollment %in% "White" ~ "White",
-    ethnicity_domestic_enrollment %in% c("Other", "Unknown") ~ "Other"
-  )) %>% 
-  filter (ethnicity_domestic_enrollment != "Other")
+    ethnicity_domestic_enrollment %in% "E. Indian / Pakistani" ~ "E.Indian/Pakistani"
+    )) %>% 
+  group_by(year, ethnicity_domestic_enrollment) %>% 
+  summarise(enrollment = sum(enrollment)) 
 
-# keep top 5 most enrolled ethnicity groups
-ucsb_ethnicity_top <- ucsb_ethnicity_combined %>% 
+change <- ucsb_ethnicity_combined %>% 
+  filter (year %in% c("2008 - 2009", "2018 - 2019")) 
+
+change2 <- change %>% 
   group_by(ethnicity_domestic_enrollment) %>% 
-  head(5, enrollment,add_rownames=T)
+  mutate (original_enrollment = enrollment) %>% 
+  summarise( change_enrollment = diff(enrollment),
+             per_change = (change_enrollment/original_enrollment)) 
+    
 
 #plot
 
-ggplot (new, aes(x=year, y=enrollment)) +
-  geom_point (aes(color=ethnicity_domestic_enrollment)) 
+ggplot (ucsb_ethnicity_combined, aes(x= year, y=enrollment)) +
+  geom_line (aes(group = ethnicity_domestic_enrollment, 
+                 color=ethnicity_domestic_enrollment), 
+             show.legend=F) +
+  geom_point(aes(color=ethnicity_domestic_enrollment), show.legend=F) +
+  theme_bw() +
+  labs(x= "\nYear", 
+       y= "Enrollment\n", 
+       title=" Undergraduate Enrollment of Minorities at UC Santa Barbara", 
+       subtitle="2008-2019\n") +
+
+
+
+   coord_cartesian(clip="off") +
+   theme(plot.title = element_text(hjust=0.5),
+        plot.subtitle = element_text(hjust=0.5),
+        plot.margin = unit(c(1,7,1,1),"lines")) +
+  scale_x_discrete (expand=c(0,0),
+                    labels = c('08-09', '09-10', '10-11', 
+                               '11-12', '12-13', '13-14', 
+                               '14-15', '15-16', '16-17', 
+                               '17-18', '18-19')) +
+  scale_y_continuous(lim=c(0, 7000), 
+                     expand=c(0,0),
+                     breaks=seq(0,7000, by=1000)) +
+  annotate("text", label= "American Indian/Alaskan", 
+           x = Inf, 
+           y = 150, 
+           size = 3,
+           hjust = -0.12,
+           vjust = 0) +
+  annotate("text", label = "Asian/Pacific Islander",
+           x = Inf,
+           y = 5000,
+           size = 3,
+           hjust = -0.1,
+           vjust = 0) +
+  annotate("text", label = "African American",
+           x = Inf,
+           y = 1010,
+           size = 3,
+           hjust = -0.175,
+           vjust = 0) +
+  annotate("text", label = "Hispanic",
+           x = Inf,
+           y = 6020,
+           size = 3,
+           hjust = -0.25,
+           vjust = 0) +
+  annotate("text", label = "E.Indian/Pakistani",
+           x = Inf,
+           y = 650,
+           size = 3,
+           hjust = -0.18,
+           vjust = 0) 
   
 ```
+***Figure x:** Annual undergraduate enrollment rates of minorities and underrepresented groups at University of California, Santa Barbara. Years are based on a school calendar year which starts in September of one year and ends in June of the following year. Data: ![UCSB] (http://bap.ucsb.edu/institutional.research/campus.profiles/)*
+
+
+General takeways from Figure x:
+
+- Line graphs with groups that have large differences in numbers (Hispanics and Asian/Pacific Islander compared to African Americans, E. Indian/Pakistani, and American Indian/Alaskan) can result in incorrectly misinterpreting  information minorities have had the largest growth in undergradutes.
+- While it appears that the enrollment for the other three minorities has been relatively stagnant, African American enrollment has almost doubled and East Indian and Pakistani enrollment has increased by 226% since 2008-2009 school year. American Indian and Alaskan enrollment has very similar percent change: 52% and 54% respectively.    
 
 
 ### Task 4: Purple urchins on the Santa Barbara coast
