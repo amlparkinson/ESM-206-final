@@ -25,6 +25,8 @@ library(stargazer)
 
 ```
 
+<br>
+
 ### Task 1: Predicting Penguin Mass
 
 
@@ -67,16 +69,17 @@ ggplot(penguin_sub, aes(x=flipper_length_mm, y=body_mass_g)) +
 
 ```
 
-***Figure 1:** Flipper lengths (mm) and body mass (g) by sex of three penguin species in Antarctica - ![Gentoo] (https://doi.org/10.6073/pasta/409c808f8fc9899d02401bdb04580af7), ![Chinstrap] (https://doi.org/10.6073/pasta/2b1cff60f81640f182433d23e68541ce), and ![Adelie] (https://doi.org/10.6073/pasta/abc50eed9138b75f54eaada0841b9b86) penguins. Data: Palmer Station LTER.*
+***Figure 1:** Flipper lengths (mm) and body mass (g) by sex of three penguin species in Antarctica - [Gentoo](https://doi.org/10.6073/pasta/409c808f8fc9899d02401bdb04580af7), [Chinstrap](https://doi.org/10.6073/pasta/2b1cff60f81640f182433d23e68541ce), and [Adelie](https://doi.org/10.6073/pasta/abc50eed9138b75f54eaada0841b9b86) penguins. Data: Palmer Station LTER.*
 
+<br>
 General trends from Figure 1:
 
 - Male penguins appear to have higher body mass and slightly longer flipper lengths than females across all three species. 
 - Gentoo penguins have the highest body mass and longest flipper length than Chinstrap and Adelie penguins. 
 
+<br>
 
-***Table 1:** text here*
-```{r, results='asis', include = F}
+```{r, include = F}
 #Multiple linear regression model 
 
 # model trials --------------------------------------------------
@@ -102,22 +105,39 @@ plot(mass_model1)
 
 # statement about how the model passes the assumptions here #########
 
-#table to report model results (using stargazer)
-
-stargazer(mass_model1, type="html")
-
-
 
 ```
 
-The assumptions for using multiple linear regression were met by plotting the residuals. The QQ plot showed that the residuals follow a normal distribution, while ...
+***Table 1:** Regression table displaying the relationship between Antarctic penguins species, sex, and flipper length to predict body mass. (body mass(sex, flipper length, species) = -365.8 + 530.38(MALE) + 20.03(flipper length) + 836.26(Gentoo Penguin) - 87.63(Chinstrap Penguin)*
+```{r, results='asis'}
+#table to report model results (using stargazer)
 
-The adjusted R^2^ evaluates model fit, but has been adjusted for the number of predictors in the model. 
+stargazer(mass_model1, type="html")
+```
+
+<br>
+
+The assumptions for using multiple linear regression were met by plotting the residuals of the multiple linear regression model. The QQ plot showed that the residuals follow a normal distribution so the assumption of residual normality is met, while the residuals vs. fitted plot showed that the residuals appear randomly distributed with no change in range so the assumption of homoscedasticity is also met. 
+
+<br>
+
+The adjusted R^2^ (R^2^ = 0.865) evaluates how much variance in body mass is explained by the explanatory variables (species, flipper length, sex), so in this case 86.5% of the variance in penguin body mass can be explained by species, flipper length, and sex.
+
+<br>
+
+Interpretation of the model coefficients:
+
+- If everything else about the penguin is the same (species, flipper length), then I expect male penguins to weigh 530.38 grams more than a female penguin on average
+- If everything else is held constant, then I expect boby mass to increase 20.03 grams for every 1 mm increase in flipper length.
+-  If everything else about the penguin is the same (sex, flipper length), then I expect Gentoo penguins weigh 836.26 grams more than Adelie penguins. 
+-  If everything else about the penguin is the same (sex, flipper length), then I expect Chinstrap penguins weigh 87.63 grams less than Adelie penguins. 
 
 
 
+<br>
 
-```{r, include = F}
+***Table 2:** Predicted weights of three penguins (right column) using model: (body mass(sex, flipper length, species) = -365.8 + 530.38(MALE) + 20.03(flipper length) + 836.26(Gentoo Penguin) - 87.63(Chinstrap Penguin)*
+```{r}
 # Use the model predict the masses 
 
 # create data frame
@@ -136,7 +156,7 @@ new_df_predictions <- data.frame(new_df, predict_df)
 # make new_df_preiditions into a nice table
 
 new_df_predictions %>% 
-  kable (col.names = c("Flipper Length (mm)", "Sex", "Species", "Body Mass (g) Predictions")) %>%
+  kable (col.names = c("Flipper Length (mm)", "Sex", "Species", "Body Mass (g) Predictions"), align="c") %>%
  # add_header_above(c(" "= 1, "Low Birthweight?"=2)) %>% 
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
@@ -146,21 +166,8 @@ new_df_predictions %>%
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<br>
+<br>
 
 ### Task 2: Smoking effects on baby birth weight
 
@@ -174,7 +181,7 @@ birthweights <- read_csv('nc_birthweights.csv') %>%
 ```
 
 
-***Table 2:** Data was collected on babies classified birthweight (low or not) and whther or not the mother smoked during pregnancy. 1,000 babies from North Carolina were randomly selected for the study.*
+***Table 3:** Data was collected on babies birthweight (categorically classified as low or not low) and whther or not the mother smoked during pregnancy. 1,000 babies from North Carolina were randomly selected for the study.*
 ```{r}
 # table: Does the proportion of babies born at “low birth weight” differ depending on whether the mother smoked or did not smoke during pregnancy
 
@@ -237,10 +244,13 @@ birthweights_chi
 # p = 0.2696
 ```
 
-A Pearson's chi-squared test was performed to examine whether or not babies with low birthweights are independent of having mothers who smoked during pregnancy. The results from our test found that babies with low bithweights are independent of mothers smoking during pregnancy ($\chi$^2^(`r birthweights_chi$parameter`) = `r round(birthweights_chi$statistic,2)`, *p* = `r round(birthweights_chi$p.value,2)`). 
+<br>
 
-To improve future surveys, researchers might consider changing the "smoking during pregnancy" category from binomial (yes or no) to a ordinal response (frequently, sometimes, rarely, never). Some women might have smoked once or twice throughout their pregnancy, while others might have smoked every day, or some other frequency. Mothers who smoked once or twice may not have as much of an effect on their babies birthweight than mothers who smoked frequently, so researchers would want to distinguish between these differences if there are any.
+A Pearson's chi-squared test was performed to examine whether or not babies with low birthweights are independent of having mothers who smoked during pregnancy. The results from our test found that babies with low bithweights are independent of being born from mothers who smoked during pregnancy ($\chi$^2^(`r birthweights_chi$parameter`) = `r round(birthweights_chi$statistic,2)`, *p* = `r round(birthweights_chi$p.value,2)`). 
 
+To improve future surveys, researchers might consider changing the "smoking during pregnancy" category from binomial (yes or no) to an ordinal response with more than two categories (e.g. frequently, sometimes, rarely, never). Some women might have smoked once or twice throughout their pregnancy, while others might have smoked every day, or some other frequency. Mothers who smoked once or twice may not have had as much of an effect on their babies birthweight than mothers who smoked frequently, so researchers would want to distinguish between these differences if there are any.
+
+<br>
 
 ### Task 3: Visualizing UCSB campus profiles
 
@@ -278,15 +288,6 @@ ucsb_ethnicity_combined <- ucsb_ethnicity %>%
   group_by(year, ethnicity_domestic_enrollment) %>% 
   summarise(enrollment = sum(enrollment)) 
 
-change <- ucsb_ethnicity_combined %>% 
-  filter (year %in% c("2008 - 2009", "2018 - 2019")) 
-
-change2 <- change %>% 
-  group_by(ethnicity_domestic_enrollment) %>% 
-  mutate (original_enrollment = enrollment) %>% 
-  summarise( change_enrollment = diff(enrollment),
-             per_change = (change_enrollment/original_enrollment)) 
-    
 
 #plot
 
@@ -347,14 +348,16 @@ ggplot (ucsb_ethnicity_combined, aes(x= year, y=enrollment)) +
            vjust = 0) 
   
 ```
-***Figure x:** Annual undergraduate enrollment rates of minorities and underrepresented groups at University of California, Santa Barbara. Years are based on a school calendar year which starts in September of one year and ends in June of the following year. Data: ![UCSB] (http://bap.ucsb.edu/institutional.research/campus.profiles/)*
+***Figure x:** Annual undergraduate enrollment rates of minorities and underrepresented groups at University of California, Santa Barbara. Years are based on a school calendar year which starts in September of one year and ends in June of the following year. Data: [UCSB](http://bap.ucsb.edu/institutional.research/campus.profiles/)*
 
+<br>
 
 General takeways from Figure x:
 
 - Line graphs with groups that have large differences in numbers (Hispanics and Asian/Pacific Islander compared to African Americans, E. Indian/Pakistani, and American Indian/Alaskan) can result in incorrectly misinterpreting  information minorities have had the largest growth in undergradutes.
 - While it appears that the enrollment for the other three minorities has been relatively stagnant, African American enrollment has almost doubled and East Indian and Pakistani enrollment has increased by 226% since 2008-2009 school year. American Indian and Alaskan enrollment has very similar percent change: 52% and 54% respectively.    
 
+<br>
 
 ### Task 4: Purple urchins on the Santa Barbara coast
 
@@ -378,7 +381,11 @@ urchin <-  urchin %>%
 
 ```
 
-```{r, include = F}
+<br> 
+ 
+***Table 4** Summary statistics for purple urchin (*Strongylocentrotus purpuratus*) population sizes in control plots at five sites along the Santa Barbara coast from 2008-2018. Data: [SBC LTER](https://doi.org/10.6073/pasta/846569acc8745c133a44eac40245e6f0). *
+
+```{r}
 
 # summary statistics for urchin sizes at the 5 different sites
 
@@ -400,13 +407,14 @@ urchin_stats %>%
 
 
 ```
-maybe choose a different graph? -> yes ,make a graph with measures of uncertainty (sd, se)
-```{r, include = F}
+<br>
+<br>
+```{r}
 # exploratory graphs of purple urchin size distributions at each site
 
 ggplot (urchin, aes(x=size)) +
   geom_density(aes(fill=site), show.legend=F) +
-  labs ( x= '\nSize (?)', 
+  labs ( x= '\nSize (cm)', 
          y = 'Density\n', 
          title="Sampling distribution of purple urchins",
          subtitle = "2008-2018\n") +
@@ -424,7 +432,12 @@ ggplot (urchin, aes(x=size)) +
 
 ```
 
+Observed trends in sampe distribution graphs:
 
+- Urchin sizes at Arroyo Quemado, Isla Vista, and Mohawk appear normally distributed, while urchin sizes are slightly right skewed.
+
+
+<br>
 
 Observations of exploratory graphs:
 
@@ -459,16 +472,17 @@ df <- data.frame(urchin_tukey$site)
 df
 ```
 
-To determine whether or not there is a difference in total mean sizes for purple urchins (*Strongylocentrotus purpuratus*) found in five different sites along the Santa Barbara coast, a one-way ANOVA test was performed. The results  F(`r urchin_outputs[1]`, `r urchin_outputs[2]`) = `r round(urchin_outputs[7],2)`, *p* = `r round(urchin_outputs[9],3)`) indicate that there is a significant difference between at least two of the mean sizes for purple urchins in different sites A Tukey's HSD post-hoc test was performed to determine which sites had significant differences between total mean sizes. The results show that there is a significant difference in all but one pairwise comparison: total mean sizes between purple urchins in Isla Vista (`r round(urchin_stats$mean[3], 2)`g $\pm$ `r round(urchin_stats$sd[3], 2)`g)(mean $\pm$ SD) and Carpinteria (`r round(urchin_stats$mean[2], 2)`g $\pm$ `r round(urchin_stats$sd[2], 2)`g)(mean $\pm$ SD) (*p* = `r round(df$p.adj[5],3)`). 
+<br>
+
+To determine whether or not there is a difference in total mean sizes for purple urchins (*Strongylocentrotus purpuratus*) found in five different sites along the Santa Barbara coast, a one-way ANOVA test was performed. The results  F(`r urchin_outputs[1]`, `r urchin_outputs[2]`) = `r round(urchin_outputs[7],2)`, *p* = `r round(urchin_outputs[9],4)`) indicate that there is a significant difference between at least two of the mean sizes for purple urchins in different sites A Tukey's HSD post-hoc test was performed to determine which sites had purple urhcin populations with significant differences between total mean sizes. The results show that there is a significant difference in all but one pairwise comparison: total mean sizes between purple urchins in Isla Vista (`r round(urchin_stats$mean[3], 2)`cm $\pm$ `r round(urchin_stats$sd[3], 2)`cm)(mean $\pm$ SD) and Carpinteria (`r round(urchin_stats$mean[2], 2)`cm $\pm$ `r round(urchin_stats$sd[2], 2)`cm)(*p* = `r round(df$p.adj[5],3)`). The actual difference between the population means was 0.08cm.
+
+All other pairwaise comparisons had significant differences in purple urchin mean sizes(*p* = `r round(df$p.adj[1],3)`). Mohawk had the largest mean population size (`r round(urchin_stats$mean[4], 2)`cm $\pm$ `r round(urchin_stats$sd[4], 2)`cm)(mean $\pm$ SD), which was 0.71cm, 1.11cm, 1.03cm, and 1.23cm larger than mean population sizes ar Arroyo Quemado (`r round(urchin_stats$mean[1], 2)`cm $\pm$ `r round(urchin_stats$sd[1], 2)`cm) (mean $\pm$ SD), Carpinteria (`r round(urchin_stats$mean[2], 2)`cm $\pm$ `r round(urchin_stats$sd[2], 2)`cm), Isla Vista (`r round(urchin_stats$mean[3], 2)`cm $\pm$ `r round(urchin_stats$sd[3], 2)`cm)(mean $\pm$ SD), and Naples (`r round(urchin_stats$mean[5], 2)`cm $\pm$ `r round(urchin_stats$sd[5], 2)`cm) (mean $\pm$ SD), respectively. Difference in mean urchin sizes at the other sites, Carpinteria, Isla Vista, and Naples, was 0.4cm, 0.32cm, and 0.52cm. The difference in mean sizes for urchins in Naples from Isla Vista and Carpinteria was 0.2cm and 0.12cm.
 
 
-mohawk: (`r round(urchin_stats$mean[4], 2)`g $\pm$ `r round(urchin_stats$sd[4], 2)`g) 
-naples: (`r round(urchin_stats$mean[5], 2)`g $\pm$ `r round(urchin_stats$sd[5], 2)`g)
-arroyo Quemado (`r round(urchin_stats$mean[1], 2)`g $\pm$ `r round(urchin_stats$sd[1], 2)`g)
 
-The actual differences in mean weights between channel types was 1.78 grams between pools and cascades and 1.84 grams between side channels and cascades. These differences were significantly lower than the difference between pools and side channles, which was 3.62 grams (about 50% higher than the other mean differences). 
-
-
+<br>
+<br>
+<br>
 
 
 
