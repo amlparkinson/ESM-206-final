@@ -1,0 +1,217 @@
+---
+title: "Final"
+author: "Anne-Marie Parkinson"
+date: "December 4, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# load packages
+
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(kableExtra)
+```
+
+### Task 1: Predicting Penguin Mass
+
+
+so use multiple linear regression to predict mass using species + sex + flipper length
+
+steps: visualize data for correlations
+make model (with diff combos)
+check assumptions
+```{r}
+# load data
+penguin <- read_csv("lter_penguin_species.csv")
+
+```
+
+```{r}
+
+
+# step 1: visualize data- scatter plots and correlations to check for collinearity
+#sub data: include only necessary columns
+penguin_sub <- penguin %>% 
+  select(body_mass_g, species, flipper_length_mm, sex)
+
+#penguin_corr <- cor(penguin_sub[2:4])
+
+#dont really have to bc 2 of the 3 variables is categorical.
+
+
+# step : Multiple linear regression model
+
+mass_model1 <- lm(body_mass_g ~ species + flipper_length_mm + sex, data=penguin)
+summary(mass_model1)
+
+mass_model2 <- lm(body_mass_g ~ flipper_length_mm + sex, data=penguin)
+summary(mass_model2)
+
+mass_model3 <- lm(body_mass_g ~ species + flipper_length_mm, data=penguin)
+summary(mass_model3)
+
+# check assumptions (residual normality and homoscedasticity)
+
+plot(mass_model2)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Task 2: Smoking effects on baby birth weight
+
+```{r}
+# load data
+
+birthweights <- read_csv('nc_birthweights.csv') %>% 
+  select (tpounds, lowbw, smoke) %>% 
+  drop_na(smoke)
+#drop NA in smoke column
+```
+
+```{r}
+# table: Does the proportion of babies born at “low birth weight” differ depending on whether the mother smoked or did not smoke during pregnancy
+
+# step 1: create sub data
+
+birthweights_table_data <- birthweights %>% 
+  group_by(smoke) %>% 
+  count(lowbw) %>% 
+  mutate(low_birth_weight = case_when( 
+         lowbw == 1 ~ "Yes",
+         lowbw == 0 ~ "No")) %>% 
+  mutate("Mother Smoke?" = case_when(
+    smoke == 1 ~"Yes",
+    smoke == 0 ~"No"
+  )) %>% 
+  ungroup(smoke) %>% 
+  select(-lowbw, -smoke)
+
+# step 2 create contigency  table
+
+birthweights_table <- birthweights_table_data %>% 
+  pivot_wider(names_from = low_birth_weight, values_from = n) %>% 
+  adorn_percentages(denominator = "row") %>% 
+  adorn_pct_formatting(digits=1) %>% 
+  adorn_ns(position = "front")
+
+# step 3: R markdown friendly contigency table with counts and proportions
+
+birthweights_table %>% 
+  kable (col.names = c("Mother Smoke?", "No", "Yes")) %>%
+  add_header_above(c(" "= 1, "Low Birthweight?"=2)) %>% 
+  add_header_above(c("North Carolina babies: Does mother smoking affect baby's birthweight?"=3)) %>% 
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+    full_width=T,
+    position="center")
+
+#  column_spec(1,width='3cm') --> control column 1's row width
+#  column_spec(2, width="3cm") 
+
+
+```
+
+```{r}
+# statistically significant difference between the proportion of babies born at low birth weights for smoking vs. non-smoking mothers? 
+
+# H null: there is no difference in birthweights of babies from mothers who did and did not smoke
+# H alt : there is a difference in birthweights of babies from mothers who did and did not smoke
+
+# step 1: get cocntigency table of just counts
+#birthweight_counts <- birthweights_table %>% 
+#  column_to_rownames("Mother Smoke?")            --> issues!
+
+# step 2: run chi-square test
+
+#birthweights_chi <- chisq.test(birthweight_counts)
+#birthweights_chi
+
+# p =
+```
+
+
+c. some babies may be born prematruly or have genetic conditions, so they would likely have  a below avg birthweight. 
+
+
+
+
+
+### Task 3: Visualizing UCSB campus profiles
+
+```{r}
+ucsb <- read_csv('ucsb_campus_profiles.csv') %>% 
+  pivot_longer('2018 - 2019' : '2008 - 2009',
+               names_to = 'year',
+               values_to = 'value') %>% 
+  clean_names()
+```
+
+
+
+```{r}
+# for now, explore what relationship to explore
+# subdata
+new <- ucsb %>% 
+  group_by(ethnicity_domestic_enrollment,year) %>% 
+  summarise(enrollment = sum(value, na.rm=T)) %>% 
+  mutate (enrollment = case_when(
+    enrollment = 'American Indian / Alaskan'  ~ 'American Indian/Alaskan', 
+    enrollment %in% c("Asian/Pacific Islander", "Filipino" ) ~ "Asian/Pacific Islander", 
+    enrollment = "Black/African American" ~ "Black/African American",
+    enrollment %in% c("Chicano", "Latino") ~ "Hispanic",
+    enrollment = "E.Indian/Pakistani" ~ "E.Indian/Pakistani",
+    enrollment = "White" ~ "White",
+    enrollment %in% c("Other", "Unknown") ~ "Other"
+  ))
+
+
+#plot
+
+ggplot (new, aes(x=year, y=enrollment)) +
+  geom_point (aes(color=ethnicity_domestic_enrollment))
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
