@@ -6,7 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo = F,
+  message = FALSE,
+  warning = FALSE)
 ```
 
 
@@ -17,6 +20,8 @@ library(tidyverse)
 library(dplyr)
 library(janitor)
 library(kableExtra)
+library(grid)
+library(stargazer)
 ```
 
 ### Task 1: Predicting Penguin Mass
@@ -28,46 +33,101 @@ steps: visualize data for correlations
 make model (with diff combos)
 check assumptions
 ```{r}
-# load data
-penguin <- read_csv("lter_penguin_species.csv")
+# load data and remove NA's
+penguin <- read_csv("lter_penguin_species.csv") %>% 
+  drop_na(body_mass_g) %>% 
+  drop_na(flipper_length_mm) %>% 
+  drop_na(sex) %>% 
+  filter (sex != ".")
 
 ```
 
 ```{r}
 
-
-# step 1: visualize data- scatter plots and correlations to check for collinearity
-#sub data: include only necessary columns
+# visualize data
 penguin_sub <- penguin %>% 
   select(body_mass_g, species, flipper_length_mm, sex)
 
-#penguin_corr <- cor(penguin_sub[2:4])
+ggplot(penguin_sub, aes(x=flipper_length_mm, y=body_mass_g)) +
+  geom_point(aes(color=fct_rev(species))) +
+  facet_wrap(~sex) +
+  labs(x = "\nFlipper Length (mm)", 
+       y = "Body Mass (g)\n", 
+       title = "Weight and Flipper Length\n of Three Antarctic Penguin Species") +
+  theme_bw() +
+  scale_color_discrete(name="Species", 
+                       labels=c("Gentoo Penguin (Pygoscelis papua)",
+                                'Chinstrap Penguin (Pygoscelis antarctica)',
+                                "Adelie Penguin (Pygoscelis adeliae)")) +
+  theme(legend.title.align=0.5, 
+        plot.title = element_text(hjust=0.5),
+        panel.spacing=unit(2, "lines")) +
+  scale_x_continuous(lim=c(150, 250), 
+                     expand=c(0,0),
+                     breaks=seq(150, 250, by=50)) +
+  scale_y_continuous(lim=c(2500, 6500), 
+                     expand=c(0,0),
+                     breaks=seq(3000, 6500, by=1000))
 
-#dont really have to bc 2 of the 3 variables is categorical.
 
 
-# step : Multiple linear regression model
+
+
+```
+***Figure 1:** Data: Palmer Station LTER.*
+
+General trends from Figure 1:
+
+- Male penguins appear to have higher body mass and slightly longer flipper lengths than females across all three species. 
+- Gentoo penguins have the highest body mass and longest flipper length than Chinstrap and Adelie penguins. 
+
+
+***Table 1:** text here*
+```{r, results='asis', include = F}
+#Multiple linear regression model 
+
+# model trials --------------------------------------------------
 
 mass_model1 <- lm(body_mass_g ~ species + flipper_length_mm + sex, data=penguin)
 summary(mass_model1)
 
-mass_model2 <- lm(body_mass_g ~ flipper_length_mm + sex, data=penguin)
+mass_model2 <- lm(body_mass_g ~ flipper_length_mm + sex, data=penguin) 
 summary(mass_model2)
 
 mass_model3 <- lm(body_mass_g ~ species + flipper_length_mm, data=penguin)
 summary(mass_model3)
 
+# compare model AICs
+
+AIC (mass_model1) #4740 --> lowest AIC
+AIC (mass_model2) #4862
+AIC (mass_model3) #4895
+
 # check assumptions (residual normality and homoscedasticity)
 
-plot(mass_model2)
+plot(mass_model1)
+
+# statement about how the model passes the assumptions here #########
+
+#table to report model results (using stargazer)
+
+stargazer(mass_model1, type="html")
+
+
 
 ```
 
 
 
+```{r, include = F}
+# G:	Use the model, predict the masses 
+mass_model1
+
+intercept = -365.82
+flipper_length = 20.02
 
 
-
+```
 
 
 
@@ -89,12 +149,12 @@ plot(mass_model2)
 ### Task 2: Smoking effects on baby birth weight
 
 ```{r}
-# load data
+# load data and only keep tpounds, lowbw, and smoke columns
 
 birthweights <- read_csv('nc_birthweights.csv') %>% 
   select (tpounds, lowbw, smoke) %>% 
   drop_na(smoke)
-#drop NA in smoke column
+
 ```
 
 ```{r}
@@ -117,57 +177,56 @@ birthweights_table_data <- birthweights %>%
 
 # step 2 create contigency  table
 
-birthweights_table <- birthweights_table_data %>% 
-  pivot_wider(names_from = low_birth_weight, values_from = n) %>% 
+birthweights_table_counts <- birthweights_table_data %>% 
+  pivot_wider(names_from = low_birth_weight, values_from = n) 
+
+birthweights_table_proportions <- birthweights_table_counts %>% 
   adorn_percentages(denominator = "row") %>% 
   adorn_pct_formatting(digits=1) %>% 
   adorn_ns(position = "front")
 
 # step 3: R markdown friendly contigency table with counts and proportions
 
-birthweights_table %>% 
+birthweights_table_proportions %>% 
   kable (col.names = c("Mother Smoke?", "No", "Yes")) %>%
   add_header_above(c(" "= 1, "Low Birthweight?"=2)) %>% 
-  add_header_above(c("North Carolina babies: Does mother smoking affect baby's birthweight?"=3)) %>% 
+  #add_header_above(c("North Carolina babies: Does mother smoking affect baby's birthweight?"=3)) %>% 
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
-    full_width=T,
-    position="center")
-
-#  column_spec(1,width='3cm') --> control column 1's row width
-#  column_spec(2, width="3cm") 
+    full_width=F,
+    position="center") %>% 
+  column_spec(1, width='4cm') %>%  #control column 1's row width
+  column_spec(2, width="8em") %>% 
+  column_spec(3, width="8em")
 
 
 ```
 
-```{r}
+```{r, include = F}
 # statistically significant difference between the proportion of babies born at low birth weights for smoking vs. non-smoking mothers? 
 
 # H null: there is no difference in birthweights of babies from mothers who did and did not smoke
 # H alt : there is a difference in birthweights of babies from mothers who did and did not smoke
 
 # step 1: get cocntigency table of just counts
-#birthweight_counts <- birthweights_table %>% 
-#  column_to_rownames("Mother Smoke?")            --> issues!
+birthweight_counts <- birthweights_table_counts %>% 
+  column_to_rownames('Mother Smoke?')           
 
 # step 2: run chi-square test
+birthweights_chi <- chisq.test(birthweight_counts)
+birthweights_chi
 
-#birthweights_chi <- chisq.test(birthweight_counts)
-#birthweights_chi
-
-# p =
+# p = 0.2696
 ```
 
+A Pearson's chi-squared test was performed to examine whether or not babies with low birthweights are independent of having mothers who smoked during pregnancy. The results from our test found that babies with low bithweights are independent of mothers smoking during pregnancy ($\chi$^2^(`r birthweights_chi$parameter`) = `r round(birthweights_chi$statistic,2)`, *p* = `r round(birthweights_chi$p.value,2)`). 
 
-c. some babies may be born prematruly or have genetic conditions, so they would likely have  a below avg birthweight. 
-
-
-
+To improve future surveys, researchers might consider changing the "smoking during pregnancy" category from binomial (yes or no) to a ordinal response (frequently, sometimes, rarely, never). Some women might have smoked once or twice throughout their pregnancy, while others might have smoked every day, or some other frequency. Mothers who smoked once or twice may not have as much of an effect on their babies birthweight than mothers who smoked frequently, so researchers would want to distinguish between these differences if there are any.
 
 
 ### Task 3: Visualizing UCSB campus profiles
 
-```{r}
+```{r, include = F}
 ucsb <- read_csv('ucsb_campus_profiles.csv') %>% 
   pivot_longer('2018 - 2019' : '2008 - 2009',
                names_to = 'year',
@@ -177,31 +236,43 @@ ucsb <- read_csv('ucsb_campus_profiles.csv') %>%
 
 
 
-```{r}
+```{r, include = F}
 # for now, explore what relationship to explore
-# subdata
-new <- ucsb %>% 
+# subdata: combine groups and remove other/unknown
+
+ucsb_ethnicity_combined <- ucsb %>% 
   group_by(ethnicity_domestic_enrollment,year) %>% 
   summarise(enrollment = sum(value, na.rm=T)) %>% 
-  mutate (enrollment = case_when(
-    enrollment = 'American Indian / Alaskan'  ~ 'American Indian/Alaskan', 
-    enrollment %in% c("Asian/Pacific Islander", "Filipino" ) ~ "Asian/Pacific Islander", 
-    enrollment = "Black/African American" ~ "Black/African American",
-    enrollment %in% c("Chicano", "Latino") ~ "Hispanic",
-    enrollment = "E.Indian/Pakistani" ~ "E.Indian/Pakistani",
-    enrollment = "White" ~ "White",
-    enrollment %in% c("Other", "Unknown") ~ "Other"
-  ))
+  ungroup(ethnicity_domestic_enrollment) %>% 
+  mutate (ethnicity_domestic_enrollment = case_when(
+    ethnicity_domestic_enrollment %in% 'American Indian / Alaskan'  ~ 'American Indian/Alaskan', 
+    ethnicity_domestic_enrollment %in% c("Asian / Pacific Islander", "Filipino" ) ~ "Asian/Pacific Islander", 
+    ethnicity_domestic_enrollment %in% "Black / African American" ~ "Black/African American",
+    ethnicity_domestic_enrollment %in% c("Chicano", "Latino") ~ "Hispanic",
+    ethnicity_domestic_enrollment %in% "E. Indian / Pakistani" ~ "E.Indian/Pakistani",
+    ethnicity_domestic_enrollment %in% "White" ~ "White",
+    ethnicity_domestic_enrollment %in% c("Other", "Unknown") ~ "Other"
+  )) %>% 
+  filter (ethnicity_domestic_enrollment != "Other")
 
+# keep top 5 most enrolled ethnicity groups
+ucsb_ethnicity_top <- ucsb_ethnicity_combined %>% 
+  group_by(ethnicity_domestic_enrollment) %>% 
+  head(5, enrollment,add_rownames=T)
 
 #plot
 
 ggplot (new, aes(x=year, y=enrollment)) +
-  geom_point (aes(color=ethnicity_domestic_enrollment))
+  geom_point (aes(color=ethnicity_domestic_enrollment)) 
   
 ```
 
 
+### Task 4: Purple urchins on the Santa Barbara coast
+
+```{r}
+
+```
 
 
 
